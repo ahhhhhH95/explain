@@ -1,0 +1,30 @@
+# explain 配置文件示例
+# 用法：cp explainrc.example ~/.explainrc 后按需修改
+#
+# 配置查找顺序：
+#   1. 命令行 --config <文件>
+#   2. 环境变量 EXPLAIN_CONFIG
+#   3. 默认路径 ~/.explainrc
+# api_key 还可由环境变量 EXPLAIN_API_KEY 提供（优先级最高）
+
+# API Key：可留空，改用环境变量 EXPLAIN_API_KEY 提供
+api_key = 
+
+# API 地址与模型（一般无需修改）
+api_url = https://ark.cn-beijing.volces.com/api/v3/chat/completions
+model = doubao-seed-2-1-lite-260915
+
+# 历史记录文件路径
+history_file = ~/.explain_history
+
+# man 手册送入模型的截断上限（字符数，避免超出模型上下文）
+man_max_chars = 4000
+
+# HTTP 超时（秒）
+timeout_sec = 30
+
+# 是否输出 ANSI 颜色
+color = true
+
+# 是否校验 HTTPS 证书（网络环境无有效 CA 时改为 false）
+ssl_verify = true
