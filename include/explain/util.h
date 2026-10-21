@@ -32,6 +32,9 @@ bool readFile(const std::string &path, std::string &out);
 // 标准输出是否为终端（用于决定是否输出 ANSI 颜色）
 bool stdoutIsTty();
 
+// 标准错误是否为终端（用于决定是否显示旋转动画）
+bool stderrIsTty();
+
 } // namespace explain
 
 #endif // EXPLAIN_UTIL_H

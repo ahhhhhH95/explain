@@ -176,7 +176,6 @@ int main(int argc, char *argv[])
     // 连接测试分支：--ping（确认大模型 API 是否可用，失败返回具体报错）
     if (opt.ping) {
         using Clock = std::chrono::steady_clock;
-        std::cout << "正在测试 API 连接（" << cfg.apiUrl << "）...\n";
         auto t0 = Clock::now();
         AiResult r = testConnection(cfg);
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - t0).count();
@@ -232,8 +231,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    // 2. 调用豆包 API
-    std::cout << "正在调用 AI 解析命令，请稍候...\n";
+    // 2. 调用豆包 API（等待期间 stderr 显示旋转动画）
     AiResult ai = callAI(cfg, man.text, cmdLine);
     if (!ai.ok) {
         printError("❌ " + ai.err, useColor);

@@ -207,4 +207,9 @@ bool stdoutIsTty()
     return EXPLAIN_ISATTY(EXPLAIN_FILENO(stdout)) != 0;
 }
 
+bool stderrIsTty()
+{
+    return EXPLAIN_ISATTY(EXPLAIN_FILENO(stderr)) != 0;
+}
+
 } // namespace explain
