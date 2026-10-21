@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <curl/curl.h>
@@ -27,6 +28,10 @@ struct Options {
     bool save = false;
     bool noColor = false;
     bool help = false;
+    bool init = false;
+    bool force = false;
+    bool showConfig = false;
+    std::vector<std::pair<std::string, std::string>> sets; // --set key=value
     std::vector<std::string> args; // 命令词
 };
 
@@ -38,6 +43,9 @@ bool parseOptions(int argc, char *argv[], Options &opt, std::string &err)
         else if (a == "--history") opt.showHistory = true;
         else if (a == "--save") opt.save = true;
         else if (a == "--no-color") opt.noColor = true;
+        else if (a == "--init") opt.init = true;
+        else if (a == "--force") opt.force = true;
+        else if (a == "--show-config") opt.showConfig = true;
         else if (a == "-h" || a == "--help") opt.help = true;
         else if (a == "--config") {
             if (i + 1 >= argc) {
@@ -51,6 +59,26 @@ bool parseOptions(int argc, char *argv[], Options &opt, std::string &err)
                 err = "--config 后缺少文件路径";
                 return false;
             }
+        } else if (a == "--set") {
+            if (i + 1 >= argc) {
+                err = "--set 后缺少 key=value";
+                return false;
+            }
+            std::string kv = argv[++i];
+            std::size_t eq = kv.find('=');
+            if (eq == std::string::npos || eq == 0) {
+                err = "--set 参数格式应为 key=value";
+                return false;
+            }
+            opt.sets.emplace_back(kv.substr(0, eq), kv.substr(eq + 1));
+        } else if (a.rfind("--set=", 0) == 0) {
+            std::string kv = a.substr(6);
+            std::size_t eq = kv.find('=');
+            if (eq == std::string::npos || eq == 0) {
+                err = "--set 参数格式应为 key=value";
+                return false;
+            }
+            opt.sets.emplace_back(kv.substr(0, eq), kv.substr(eq + 1));
         } else if (a.size() >= 2 && a[0] == '-' && a[1] == '-') {
             err = "未知选项: " + a;
             return false;
@@ -86,9 +114,60 @@ int main(int argc, char *argv[])
     // 加载配置（默认值 < 配置文件 < 环境变量）
     std::string cerr;
     Config cfg = loadConfig(opt.configPath, cerr);
-    if (!cerr.empty()) printError(cerr, useColor); // 显式指定的配置文件不存在等情况
-    if (cfg.configLoaded) {
+    // 配置管理场景（--init/--set/--show-config）下，配置文件不存在属正常流程
+    // （文件随后会被创建），不打印该警告；其余场景打印
+    bool cfgManage = opt.init || !opt.sets.empty() || opt.showConfig;
+    if (!cfgManage && !cerr.empty()) printError(cerr, useColor);
+    if (!cfgManage && cfg.configLoaded) {
         std::cout << "配置文件: " << cfg.configPath << "\n";
+    }
+
+    // 配置文件管理分支：--init / --set / --show-config
+    if (cfgManage) {
+        // 确定操作目标路径：--config 指定 > 已加载的配置文件 > 默认 ~/.explainrc
+        std::string target = opt.configPath;
+        if (target.empty()) target = cfg.configPath;
+        if (target.empty()) target = expandHome("~/.explainrc");
+
+        if (opt.init) {
+            std::string ierr;
+            if (initConfigFile(target, opt.force, ierr)) {
+                std::cout << "✅ 已生成配置文件: " << target << "\n";
+            } else {
+                printError("❌ " + ierr, useColor);
+            }
+        }
+        if (!opt.sets.empty()) {
+            std::string serr;
+            if (setConfigValue(target, opt.sets, serr)) {
+                std::cout << "✅ 已更新配置文件: " << target << "\n";
+                for (const auto &kv : opt.sets) {
+                    std::cout << "   " << kv.first << " = " << kv.second << "\n";
+                }
+            } else {
+                printError("❌ " + serr, useColor);
+            }
+        }
+
+        // 配置管理操作后重新加载，让 --show-config 显示最新结果
+        if (opt.init || !opt.sets.empty()) {
+            std::string rerr;
+            cfg = loadConfig(opt.configPath, rerr);
+        }
+
+        if (opt.showConfig) {
+            std::cout << "===== 当前配置 =====" << "\n";
+            std::cout << "配置文件路径: " << (cfg.configLoaded ? cfg.configPath : "（未加载，使用内置默认值）") << "\n";
+            std::cout << "api_key      : " << (cfg.apiKey.empty() ? "（未设置）" : cfg.apiKey.substr(0, 4) + "****") << "\n";
+            std::cout << "api_url      : " << cfg.apiUrl << "\n";
+            std::cout << "model        : " << cfg.model << "\n";
+            std::cout << "history_file : " << cfg.historyFile << "\n";
+            std::cout << "man_max_chars: " << cfg.manMaxChars << "\n";
+            std::cout << "timeout_sec  : " << cfg.timeoutSec << "\n";
+            std::cout << "color        : " << (cfg.color ? "true" : "false") << "\n";
+            std::cout << "ssl_verify   : " << (cfg.sslVerify ? "true" : "false") << "\n";
+        }
+        return 0;
     }
 
     // 历史查询分支

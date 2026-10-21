@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 
@@ -89,6 +90,54 @@ void parseConfigFile(const std::string &path, Config &cfg)
     cfg.configPath = path;
 }
 
+const std::vector<std::string> &knownKeys()
+{
+    static const std::vector<std::string> keys = {
+        "api_key", "api_url", "model", "history_file",
+        "man_max_chars", "timeout_sec", "color", "ssl_verify"
+    };
+    return keys;
+}
+
+bool isValidConfigKey(const std::string &key)
+{
+    for (const auto &k : knownKeys()) {
+        if (k == key) return true;
+    }
+    return false;
+}
+
+bool isValidConfigValue(const std::string &key, const std::string &val, std::string &err)
+{
+    if (key == "color" || key == "ssl_verify") {
+        std::string low;
+        for (char c : trim(val)) low += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (low != "true" && low != "false" && low != "yes" && low != "no" &&
+            low != "on" && low != "off" && low != "1" && low != "0") {
+            err = "配置项 " + key + " 需要布尔值（true/false/yes/no/on/off/1/0）";
+            return false;
+        }
+    } else if (key == "man_max_chars" || key == "timeout_sec") {
+        if (val.empty()) {
+            err = "配置项 " + key + " 不能为空";
+            return false;
+        }
+        for (char c : val) {
+            if (!std::isdigit(static_cast<unsigned char>(c))) {
+                err = "配置项 " + key + " 需要正整数";
+                return false;
+            }
+        }
+    } else if (key == "api_url" || key == "model" || key == "history_file") {
+        if (val.empty()) {
+            err = "配置项 " + key + " 不能为空";
+            return false;
+        }
+    }
+    // api_key 允许为空（表示改用环境变量 EXPLAIN_API_KEY）
+    return true;
+}
+
 } // namespace
 
 Config loadConfig(const std::string &explicitPath, std::string &err)
@@ -150,6 +199,112 @@ std::string configTemplate()
         "\n"
         "# 是否校验 HTTPS 证书（网络环境无有效 CA 时改为 false）\n"
         "ssl_verify = true\n";
+}
+
+bool initConfigFile(const std::string &path, bool force, std::string &err)
+{
+    std::string p = expandHome(path);
+    if (p.empty()) {
+        err = "配置文件路径为空";
+        return false;
+    }
+    if (!force) {
+        std::ifstream f(p);
+        if (f.is_open()) {
+            err = "配置文件已存在: " + p + "（如需覆盖请加 --force）";
+            return false;
+        }
+    }
+    std::ofstream f(p, std::ios::trunc);
+    if (!f.is_open()) {
+        err = "无法创建配置文件: " + p;
+        return false;
+    }
+    f << configTemplate();
+    f.close();
+    if (!f.good()) {
+        err = "写入配置文件失败: " + p;
+        return false;
+    }
+    return true;
+}
+
+bool setConfigValue(const std::string &path,
+                    const std::vector<std::pair<std::string, std::string>> &updates,
+                    std::string &err)
+{
+    std::string p = expandHome(path);
+    if (p.empty()) {
+        err = "配置文件路径为空";
+        return false;
+    }
+
+    // 先整体校验 key 与值，避免写到一半失败
+    for (const auto &kv : updates) {
+        if (!isValidConfigKey(kv.first)) {
+            err = "未知配置项: " + kv.first + "（可选值: api_key, api_url, model, history_file, man_max_chars, timeout_sec, color, ssl_verify）";
+            return false;
+        }
+        std::string verr;
+        if (!isValidConfigValue(kv.first, kv.second, verr)) {
+            err = verr;
+            return false;
+        }
+    }
+
+    // 读取现有内容；不存在则先用模板创建
+    std::string content;
+    bool existed = readFile(p, content);
+    if (!existed) {
+        content = configTemplate();
+    } else if (!content.empty() && content.back() != '\n') {
+        content += "\n";
+    }
+
+    // 逐行处理：已存在的键原位更新，其余行（含注释）原样保留
+    std::istringstream iss(content);
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(iss, line)) {
+        std::string t = trim(line);
+        bool handled = false;
+        if (!t.empty() && t[0] != '#' && t.find('=') != std::string::npos) {
+            std::string key = trim(t.substr(0, t.find('=')));
+            for (const auto &kv : updates) {
+                if (kv.first == key) {
+                    lines.push_back(kv.first + " = " + kv.second);
+                    handled = true;
+                    break;
+                }
+            }
+        }
+        if (!handled) lines.push_back(line);
+    }
+
+    // 未命中的新键追加到文件末尾
+    for (const auto &kv : updates) {
+        bool seen = false;
+        for (const auto &l : lines) {
+            std::string t = trim(l);
+            if (!t.empty() && t[0] != '#' && t.find('=') != std::string::npos) {
+                if (trim(t.substr(0, t.find('='))) == kv.first) { seen = true; break; }
+            }
+        }
+        if (!seen) lines.push_back(kv.first + " = " + kv.second);
+    }
+
+    std::ofstream f(p, std::ios::trunc);
+    if (!f.is_open()) {
+        err = "无法写入配置文件: " + p;
+        return false;
+    }
+    for (const auto &l : lines) f << l << "\n";
+    f.close();
+    if (!f.good()) {
+        err = "写入配置文件失败: " + p;
+        return false;
+    }
+    return true;
 }
 
 } // namespace explain

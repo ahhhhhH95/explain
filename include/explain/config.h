@@ -3,6 +3,8 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace explain {
 
@@ -28,6 +30,16 @@ Config loadConfig(const std::string &explicitPath, std::string &err);
 
 // 返回配置文件模板内容（可写入 explainrc.example）
 std::string configTemplate();
+
+// 一键生成配置文件（内容为模板）。force=false 且文件已存在时返回 false 并在 err 说明。
+bool initConfigFile(const std::string &path, bool force, std::string &err);
+
+// 一键修改/新增配置项并写回。文件不存在时先按模板创建。
+// updates 中 key 必须是已知配置项，value 会做基本合法性校验；
+// 已存在的键原位更新（保留其余内容与注释），新键追加到文件末尾。
+bool setConfigValue(const std::string &path,
+                    const std::vector<std::pair<std::string, std::string>> &updates,
+                    std::string &err);
 
 } // namespace explain
 

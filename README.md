@@ -16,7 +16,7 @@
   8. Markdown 文件名安全化（非法字符替换，防路径穿越）
   9. 管道重定向时自动禁用 ANSI 颜色（`--no-color` 可强制）
   10. curl 请求超时与 User-Agent 设置
-- **新功能**：用户自定义配置文件（`~/.explainrc` 或 `--config` 指定）。
+- **新功能**：用户自定义配置文件（`~/.explainrc` 或 `--config` 指定），并支持 `--init` 一键生成、`--set` 一键修改配置项、`--show-config` 查看生效配置。
 
 ## 构建（Ubuntu）
 
@@ -39,7 +39,21 @@ sudo cmake --install build        # 可选，安装到 /usr/local/bin
 ./build/explain tar --save            # 解释并导出 tar.md
 ./build/explain --config /path/to/rc  # 使用指定配置文件
 ./build/explain --no-color ls         # 强制无颜色输出
+
+# 配置管理（一键生成 / 修改 / 查看）
+./build/explain --init                          # 生成 ~/.explainrc（已存在需 --force）
+./build/explain --init --force                  # 覆盖已存在的配置文件
+./build/explain --init --set api_key=xxx        # 生成后直接写入 api_key
+./build/explain --set model=xxx                 # 修改单个配置项
+./build/explain --set color=off timeout_sec=60  # 一次修改多个配置项
+./build/explain --config myrc --set api_key=xxx # 操作指定配置文件
+./build/explain --show-config                   # 查看当前生效配置（Key 打码）
 ```
+
+说明：
+- `--set` 只修改指定项，保留文件中的注释和其余内容；配置项不存在时追加到文件末尾。
+- `--set` 会校验配置项名称与取值（布尔项/数值项），写错会直接报错。
+- `--init` / `--set` / `--show-config` 可组合使用，执行后立即退出，不会触发 AI 调用。
 
 ## 配置
 
