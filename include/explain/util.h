@@ -35,6 +35,10 @@ bool stdoutIsTty();
 // 标准错误是否为终端（用于决定是否显示旋转动画）
 bool stderrIsTty();
 
+// 规范化 API 地址：若不以 /chat/completions 结尾，自动补全该路径。
+// 支持直接配置 base 地址（如 https://api.deepseek.com）或完整接口地址。
+std::string normalizeApiUrl(const std::string &url);
+
 } // namespace explain
 
 #endif // EXPLAIN_UTIL_H

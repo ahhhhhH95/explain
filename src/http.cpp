@@ -74,7 +74,7 @@ bool httpPostJson(const Config &cfg, const std::string &postData, const std::str
     pctx.msg = waitMsg;
     pctx.last = std::chrono::steady_clock::now();
 
-    curl_easy_setopt(curl, CURLOPT_URL, cfg.apiUrl.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, normalizeApiUrl(cfg.apiUrl).c_str());
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
@@ -105,6 +105,9 @@ bool httpPostJson(const Config &cfg, const std::string &postData, const std::str
         if (!resp.empty()) {
             std::string body = resp.size() > 300 ? resp.substr(0, 300) + "..." : resp;
             err += ": " + body;
+        }
+        if (httpCode == 404) {
+            err += "（提示：api_url 需包含完整接口路径，如 https://api.deepseek.com/chat/completions）";
         }
         return false;
     }
@@ -183,7 +186,7 @@ AiResult testConnection(const Config &cfg)
     std::string resp;
     long httpCode = 0;
     std::string err;
-    if (!httpPostJson(cfg, postData, "正在测试 API 连接（" + cfg.apiUrl + "），请稍候",
+    if (!httpPostJson(cfg, postData, "正在测试 API 连接（" + normalizeApiUrl(cfg.apiUrl) + "），请稍候",
                       resp, httpCode, err)) {
         res.err = err;
         return res;

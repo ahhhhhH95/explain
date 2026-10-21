@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 
@@ -210,6 +211,19 @@ bool stdoutIsTty()
 bool stderrIsTty()
 {
     return EXPLAIN_ISATTY(EXPLAIN_FILENO(stderr)) != 0;
+}
+
+std::string normalizeApiUrl(const std::string &url)
+{
+    if (url.empty()) return url;
+    const char *kPath = "/chat/completions";
+    const std::size_t kPathLen = std::strlen(kPath);
+    std::string u = url;
+    while (u.size() > 1 && u.back() == '/') u.pop_back(); // 去掉结尾多余的 /
+    if (u.size() >= kPathLen && u.compare(u.size() - kPathLen, kPathLen, kPath) == 0) {
+        return u; // 已是完整接口地址
+    }
+    return u + kPath; // base 地址自动补全完整路径
 }
 
 } // namespace explain
