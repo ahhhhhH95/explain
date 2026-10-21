@@ -34,3 +34,5 @@ endif()
 
 install(TARGETS explain RUNTIME DESTINATION bin)
 install(FILES explainrc.example DESTINATION share/explain)
+install(FILES README.md DESTINATION share/doc/explain)
+install(FILES packaging/explain.1 DESTINATION share/man/man1)

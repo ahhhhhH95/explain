@@ -90,6 +90,11 @@ explain/
 ├── CMakeLists.txt
 ├── README.md
 ├── explainrc.example
+├── packaging/
+│   └── explain.1        # man 手册源（打包进 .deb）
+├── scripts/
+│   ├── build-deb.sh     # 一键构建 .deb 安装包
+│   └── setup-apt-repo.sh # 生成本地 apt 源（apt install explain）
 ├── include/explain/     # 接口声明
 │   ├── config.h         # 配置结构体与加载
 │   ├── history.h        # 历史记录
@@ -105,6 +110,39 @@ explain/
     ├── manpage.cpp
     ├── output.cpp
     └── util.cpp
+```
+
+## 打包与安装（Debian/Ubuntu）
+
+在 Ubuntu/Debian 上构建 `.deb` 安装包：
+
+```bash
+# 1. 安装构建依赖（只需一次）
+sudo apt install cmake g++ libcurl4-openssl-dev
+
+# 2. 一键打包（项目根目录执行）
+./scripts/build-deb.sh
+# 产物：explain_1.1.0-1_amd64.deb
+
+# 3. apt 一键安装（自动处理 libcurl4 依赖）
+sudo apt install ./explain_1.1.0-1_amd64.deb
+```
+
+安装后 `explain` 直接可用，同时安装 `man explain` 手册与 `/usr/share/explain/explainrc.example` 模板。
+
+### 方式二：本地 apt 源（`sudo apt install explain`）
+
+```bash
+sudo ./scripts/build-deb.sh && sudo ./scripts/setup-apt-repo.sh
+sudo apt install explain        # 之后随时可安装/升级
+```
+
+本地源未签名（使用 `[trusted=yes]`），适合个人与实验环境。
+
+### 卸载
+
+```bash
+sudo apt remove explain
 ```
 
 ## 已知限制

@@ -1,0 +1,56 @@
+.TH EXPLAIN 1 "2026-10" "explain 1.1.0" "用户命令"
+.SH 名称
+explain \- Linux 命令智能解释器（大模型 AI 辅助）
+.SH 概要
+.B explain
+[\fI选项\fR] <命令> [参数...]
+.SH 描述
+.B explain
+抓取指定 Linux 命令的 man 手册，调用大模型 API 生成中文解释，帮助理解
+命令的用途、参数与典型用法。
+.SH 选项
+.TP
+.B \-\-init [--force]
+一键生成配置文件（~/.explainrc）；加 --force 覆盖已有文件。
+.TP
+.B \-\-set key=value
+修改配置项并写回配置文件（校验键名与取值）。
+.TP
+.B \-\-show-config
+显示当前生效的配置（api_key 打码）。
+.TP
+.B \-\-ping
+测试大模型 API 连接是否成功（显示耗时与模型回复，失败返回具体报错）。
+.TP
+.B \-\-last
+显示最近一次 AI 解释内容。
+.TP
+.B \-\-history [N]
+显示历史记录（默认最近 10 条）。
+.TP
+.B \-\-save <文件>
+把解释结果保存为 Markdown 文件。
+.TP
+.B \-\-no-color
+禁用彩色输出。
+.TP
+.B \-\-help
+显示帮助。
+.SH 配置文件
+首次使用执行
+.B explain --init
+生成 ~/.explainrc，填入 api_key 后即可使用；也可用环境变量
+.B EXPLAIN_API_KEY
+提供密钥（优先级最高）。配置查找顺序：--config 指定文件 > 环境变量
+EXPLAIN_CONFIG > ~/.explainrc。
+.SH 示例
+.PP
+.B explain ls -l
+.PP
+.B explain --ping
+.PP
+.B explain --set model=deepseek-flash
+.SH 作者
+ahhhhh123 <l2006071788@163.com>
+.SH 参见
+.BR man (1)
