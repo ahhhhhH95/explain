@@ -17,6 +17,10 @@ struct AiResult {
 // 使用配置中的 apiKey / apiUrl / model / timeoutSec / sslVerify。
 AiResult callAI(const Config &cfg, const std::string &manText, const std::string &cmdline);
 
+// 测试大模型 API 连接是否成功（发送最小请求）。
+// 成功时 ok=true 且 content 为模型回复；失败时 err 为具体报错（HTTP 状态码/错误体等）。
+AiResult testConnection(const Config &cfg);
+
 } // namespace explain
 
 #endif // EXPLAIN_HTTP_H

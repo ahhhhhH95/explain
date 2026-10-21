@@ -48,12 +48,17 @@ sudo cmake --install build        # 可选，安装到 /usr/local/bin
 ./build/explain --set color=off timeout_sec=60  # 一次修改多个配置项
 ./build/explain --config myrc --set api_key=xxx # 操作指定配置文件
 ./build/explain --show-config                   # 查看当前生效配置（Key 打码）
+
+# 连接测试
+./build/explain --ping                  # 测试大模型 API 连接（成功显示耗时与模型回复）
+./build/explain --ping --config myrc    # 使用指定配置测试
 ```
 
 说明：
 - `--set` 只修改指定项，保留文件中的注释和其余内容；配置项不存在时追加到文件末尾。
 - `--set` 会校验配置项名称与取值（布尔项/数值项），写错会直接报错。
 - `--init` / `--set` / `--show-config` 可组合使用，执行后立即退出，不会触发 AI 调用。
+- `--ping` 发送最小请求验证鉴权、网络与模型可用性：成功输出耗时和模型回复；失败会返回具体原因（未配置 Key、网络错误、HTTP 状态码、API 错误体、响应解析失败等）。
 
 ## 配置
 

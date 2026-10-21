@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -31,6 +32,7 @@ struct Options {
     bool init = false;
     bool force = false;
     bool showConfig = false;
+    bool ping = false;
     std::vector<std::pair<std::string, std::string>> sets; // --set key=value
     std::vector<std::string> args; // 命令词
 };
@@ -46,6 +48,7 @@ bool parseOptions(int argc, char *argv[], Options &opt, std::string &err)
         else if (a == "--init") opt.init = true;
         else if (a == "--force") opt.force = true;
         else if (a == "--show-config") opt.showConfig = true;
+        else if (a == "--ping") opt.ping = true;
         else if (a == "-h" || a == "--help") opt.help = true;
         else if (a == "--config") {
             if (i + 1 >= argc) {
@@ -168,6 +171,22 @@ int main(int argc, char *argv[])
             std::cout << "ssl_verify   : " << (cfg.sslVerify ? "true" : "false") << "\n";
         }
         return 0;
+    }
+
+    // 连接测试分支：--ping（确认大模型 API 是否可用，失败返回具体报错）
+    if (opt.ping) {
+        using Clock = std::chrono::steady_clock;
+        std::cout << "正在测试 API 连接（" << cfg.apiUrl << "）...\n";
+        auto t0 = Clock::now();
+        AiResult r = testConnection(cfg);
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - t0).count();
+        if (r.ok) {
+            std::cout << "✅ API 连接成功（耗时 " << ms << " ms，模型: " << cfg.model << "）\n";
+            std::cout << "模型回复: " << r.content << "\n";
+            return 0;
+        }
+        printError("❌ API 连接失败（耗时 " + std::to_string(ms) + " ms）: " + r.err, useColor);
+        return 1;
     }
 
     // 历史查询分支
